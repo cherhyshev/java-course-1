@@ -7,6 +7,16 @@ import static org.junit.Assert.*;
 public class TrieImplTest {
     private TrieImpl testTrie = new TrieImpl();
 
+    @Test
+    public void dimasExample() {
+        testTrie.add("abcdefg");
+        assertTrue(testTrie.contains("abcdefg"));
+        assertTrue(testTrie.size() == 1);
+        testTrie.remove("abcdefg");
+        assertTrue(!testTrie.contains("abcdefg"));
+        assertTrue(testTrie.size() == 0);
+    }
+
 
     @Test
     public void typicalCase1() {

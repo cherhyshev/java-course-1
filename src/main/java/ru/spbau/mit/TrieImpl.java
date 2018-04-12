@@ -1,5 +1,6 @@
 package ru.spbau.mit;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import org.jetbrains.annotations.Nullable;
@@ -7,6 +8,53 @@ import org.jetbrains.annotations.Nullable;
 public final class TrieImpl implements Trie {
 
     private final TrieVertex root;
+
+    private class TrieVertex {
+        private boolean isTerminal;
+        private int sumTerminal;
+        private final Map<Character, TrieVertex> hashMap;
+
+        TrieVertex() {
+            isTerminal = false;
+            sumTerminal = 0;
+            hashMap = new HashMap<>();
+        }
+
+        TrieVertex addAndIter(char letter) {
+            TrieVertex newVertex = new TrieVertex();
+            hashMap.put(letter, newVertex);
+            return newVertex;
+        }
+
+        Map<Character, TrieVertex> getHashMap() {
+            return hashMap;
+        }
+
+        boolean isTerminal() {
+            return isTerminal;
+        }
+
+        void setTerminal(boolean state) {
+            isTerminal = state;
+        }
+
+        void sumTerminalInc() {
+            sumTerminal += 1;
+        }
+
+        void sumTerminalDec() {
+            sumTerminal -= 1;
+        }
+
+        int getSumTerminal() {
+            return sumTerminal;
+        }
+
+        void removeVertex(char letter) {
+            hashMap.remove(letter);
+        }
+
+    }
 
     TrieImpl() {
         root = new TrieVertex();
@@ -24,6 +72,10 @@ public final class TrieImpl implements Trie {
         }
     }
 
+    private Map<Character, TrieVertex> getHashMap(TrieVertex currentVertex){
+        return currentVertex.getHashMap();
+    }
+
     @Override
     public boolean add(@Nullable String element) {
         TrieVertex currentVertex = root;
@@ -32,9 +84,8 @@ public final class TrieImpl implements Trie {
         }
         for (char symb : element.toCharArray()) {
             currentVertex.sumTerminalInc();
-            Map<Character, TrieVertex> hashMap = currentVertex.getHashMap();
-            if (hashMap.containsKey(symb)) {
-                currentVertex = hashMap.get(symb);
+            if (getHashMap(currentVertex).containsKey(symb)) {
+                currentVertex = getHashMap(currentVertex).get(symb);
             } else {
                 currentVertex = currentVertex.addAndIter(symb);
             }
@@ -52,11 +103,10 @@ public final class TrieImpl implements Trie {
 
         TrieVertex currentVertex = root;
         for (char symb : element.toCharArray()) {
-            Map<Character, TrieVertex> hashMap = currentVertex.getHashMap();
-            if (!hashMap.containsKey(symb)) {
+            if (!getHashMap(currentVertex).containsKey(symb)) {
                 return false;
             }
-            currentVertex = hashMap.get(symb);
+            currentVertex = getHashMap(currentVertex).get(symb);
         }
         return currentVertex.isTerminal();
     }
@@ -70,16 +120,20 @@ public final class TrieImpl implements Trie {
         TrieVertex currentVertex = root;
         for (char symb : element.toCharArray()) {
             currentVertex.sumTerminalDec();
-            Map<Character, TrieVertex> hashMap = currentVertex.getHashMap();
-            currentVertex = hashMap.get(symb);
+            currentVertex = getHashMap(currentVertex).get(symb);
         }
         currentVertex.setTerminal(false);
         currentVertex.sumTerminalDec();
-        if (currentVertex.getSumTerminal() == 0) {
-            for (char key : currentVertex.getHashMap().keySet()) {
-                currentVertex.removeVertex(key);
+
+        currentVertex = root;
+        for (char symb : element.toCharArray()) {
+            if (currentVertex.getSumTerminal() == 0) {
+                for (char key : getHashMap(currentVertex).keySet()) {
+                    currentVertex.removeVertex(key);
+                }
             }
         }
+
         return true;
     }
 
