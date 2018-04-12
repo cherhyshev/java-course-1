@@ -4,6 +4,10 @@ import org.junit.Test;
 
 import static org.junit.Assert.*;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+
 public class TrieImplTest {
     private TrieImpl testTrie = new TrieImpl();
 
@@ -74,5 +78,26 @@ public class TrieImplTest {
         testTrie.remove("");
         assertTrue(testTrie.size() == 0);
 
+    }
+
+    @Test
+    public void SerializableTest() {
+        testTrie.add("asd");
+        testTrie.add("asdqf");
+        testTrie.add("cdvdvd");
+        ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+        try {
+            testTrie.serialize(byteStream);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        TrieImpl controlTestTrie = new TrieImpl();
+        try {
+            controlTestTrie.deserialize(new ByteArrayInputStream(byteStream.toByteArray()));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        assertEquals(testTrie.size(), controlTestTrie.size());
     }
 }
