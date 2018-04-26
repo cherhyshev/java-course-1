@@ -48,8 +48,8 @@ public class DictionaryImplTest {
         dict.put("key1", "value2");
         assertEquals("value2", dict.get("key1"));
         dict.remove("key1");
-        assertEquals(null, dict.get("key1"));
-        assertEquals(null, dict.get(null));
+        assertNull(dict.get("key1"));
+        assertNull(dict.get(null));
     }
 
     /**
@@ -57,17 +57,13 @@ public class DictionaryImplTest {
      */
     @Test
     public void testRehash() {
-        for (int i = 1; i <= 50; i++) {
-            System.out.println(dict.getBucketsSummary());
+        for (int i = 1; i <= 500; i++) {
             String newKey = "key" + i;
             String newValue = "value" + i;
-            System.out.println(newKey + " " + dict.get(newKey));
             dict.put(newKey, newValue);
         }
-        for (int i = 1; i <= 50; i++) {
-            System.out.println(dict.getBucketsSummary());
+        for (int i = 1; i <= 500; i++) {
             String newKey = "key" + i;
-            System.out.println(newKey + " " + dict.get(newKey));
             dict.remove(newKey);
         }
     }

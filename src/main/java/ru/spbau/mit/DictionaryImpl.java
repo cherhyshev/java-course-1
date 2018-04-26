@@ -3,14 +3,14 @@ package ru.spbau.mit;
 import org.jetbrains.annotations.Nullable;
 
 public final class DictionaryImpl implements Dictionary {
-    private static final int DEFAULT_CAPACITY = 5;
+    private static final int DEFAULT_CAPACITY = 11;
     private static final double MAX_LOAD_FACTOR = 0.75;
     private static final double MIN_LOAD_FACTOR = 0.25;
     private static final int GROW_MEASURE = 2;
 
-    private DictionaryNode[] buckets = new DictionaryNode[DEFAULT_CAPACITY];
-    private int notNullKeysSummary;
-    private int bucketsSummary;
+    private LinkedDictionaryNodeList[] buckets;
+    private int notNullKeysQuantity;
+    private int bucketsQuantity;
 
     DictionaryImpl() {
         clear();
@@ -19,43 +19,53 @@ public final class DictionaryImpl implements Dictionary {
 
     @Override
     public int size() {
-        return notNullKeysSummary;
+        return notNullKeysQuantity;
     }
 
-    public int getBucketsSummary() {
-        return bucketsSummary;
-    }
-
-    private void setBucketsSummary(int newBucketSummary) {
-        bucketsSummary = newBucketSummary;
+    int getBucketsQuantity() {
+        return bucketsQuantity;
     }
 
     @Override
     public boolean contains(@Nullable String key) {
-        int bucketIndex = getBucketIndex(key, getBucketsSummary());
-        return DictionaryNode.getNodeByKey(buckets[bucketIndex], key) != null;
+        if (key == null){
+            return false;
+        }
+        int bucketIndex = getBucketIndex(key, getBucketsQuantity());
+
+        return buckets[bucketIndex].getNodeByKey(key) != null;
     }
 
     @Override
     public String get(@Nullable String key) {
-        int bucketIndex = getBucketIndex(key, getBucketsSummary());
-        DictionaryNode foundedNode = DictionaryNode.getNodeByKey(buckets[bucketIndex], key);
-        return (foundedNode == null) ? null : foundedNode.getValue();
+        if (key == null){
+            return null;
+        }
+
+        int bucketIndex = getBucketIndex(key, getBucketsQuantity());
+        DictionaryNode foundedNode;
+
+        foundedNode = buckets[bucketIndex].getNodeByKey(key);
+
+        return foundedNode == null ? null : foundedNode.getValue();
     }
 
     @Override
     public String put(@Nullable String key, @Nullable String value) {
-        if (key != null) {
-            int bucketIndex = getBucketIndex(key, getBucketsSummary());
-            DictionaryNode containedNode = DictionaryNode.getNodeByKey(buckets[bucketIndex], key);
-            if (containedNode != null) {
-                return containedNode.setValue(value);
-            }
-            buckets[bucketIndex] = DictionaryNode.addToHeadOfBucket(buckets[bucketIndex], new DictionaryNode(key, value));
-            incNotNullKeysSummary();
-            if (calcLoadFactor() > MAX_LOAD_FACTOR) {
-                rehash(getBucketsSummary() * GROW_MEASURE);
-            }
+        if (key == null || value == null) {
+            return null;
+        }
+
+        int bucketIndex = getBucketIndex(key, getBucketsQuantity());
+        DictionaryNode containedNode = buckets[bucketIndex].getNodeByKey(key);
+        if (containedNode != null) {
+            return containedNode.setValue(value);
+        }
+
+        buckets[bucketIndex].addFirst(new DictionaryNode(key, value));
+        notNullKeysQuantity++;
+        if (calcLoadFactor() > MAX_LOAD_FACTOR) {
+            rehash(getBucketsQuantity() * GROW_MEASURE);
         }
         return null;
 
@@ -63,63 +73,66 @@ public final class DictionaryImpl implements Dictionary {
 
     @Override
     public String remove(@Nullable String key) {
-        int bucketIndex = getBucketIndex(key, getBucketsSummary());
-        DictionaryNode containedNode = DictionaryNode.getNodeByKey(buckets[bucketIndex], key);
+        if (key == null){
+            return null;
+        }
+        String removedValue = null;
+        int bucketIndex = getBucketIndex(key, getBucketsQuantity());
+
+        DictionaryNode containedNode = buckets[bucketIndex].getNodeByKey(key);
         if (containedNode != null) {
-            buckets[bucketIndex] = DictionaryNode.removeByKey(buckets[bucketIndex], key);
-            decNotNullKeysSummary();
+            removedValue = buckets[bucketIndex].removeByKey(key);
+            notNullKeysQuantity--;
 
             if (calcLoadFactor() < MIN_LOAD_FACTOR) {
-                int nextNumberOfBuckets = getBucketsSummary() / GROW_MEASURE;
-                if (DEFAULT_CAPACITY < nextNumberOfBuckets){
+                int nextNumberOfBuckets = getBucketsQuantity() / GROW_MEASURE;
+                if (DEFAULT_CAPACITY < nextNumberOfBuckets) {
                     rehash(nextNumberOfBuckets);
                 }
             }
         }
-        return (containedNode == null) ? null : containedNode.getValue();
+        return removedValue;
     }
 
     @Override
     public void clear() {
-        setBucketsSummary(DEFAULT_CAPACITY);
-        buckets = new DictionaryNode[getBucketsSummary()];
-        notNullKeysSummary = 0;
+        bucketsQuantity = DEFAULT_CAPACITY;
+        buckets = new LinkedDictionaryNodeList[getBucketsQuantity()];
+        for (int i = 0; i < getBucketsQuantity(); i++) {
+            buckets[i] = new LinkedDictionaryNodeList();
+        }
+        notNullKeysQuantity = 0;
     }
 
     private void rehash(int nextNumberOfBuckets) {
-        DictionaryNode[] newBuckets = new DictionaryNode[nextNumberOfBuckets];
+        LinkedDictionaryNodeList[] newBuckets = new LinkedDictionaryNodeList[nextNumberOfBuckets];
+        for (int i = 0; i < nextNumberOfBuckets; i++) {
+            newBuckets[i] = new LinkedDictionaryNodeList();
+        }
 
-        for (int i = 0; i < getBucketsSummary(); i++) {
-            while (buckets[i] != null) {
-                DictionaryNode nextNode = buckets[i].getNext();
-                DictionaryNode.setNext(null, buckets[i]);
-
-                String key = buckets[i].getKey();
+        for (int i = 0; i < getBucketsQuantity(); i++) {
+            for (DictionaryNode curNode : buckets[i].listOfNodes) {
+                if (curNode == null) {
+                    continue;
+                }
+                String key = curNode.getKey();
+                String value = curNode.getValue();
                 int newBucketIdx = getBucketIndex(key, nextNumberOfBuckets);
-                newBuckets[newBucketIdx] = DictionaryNode.addToHeadOfBucket(newBuckets[newBucketIdx], buckets[i]);
-
-                buckets[i] = nextNode;
+                newBuckets[newBucketIdx].addFirst(new DictionaryNode(key, value));
+                buckets[i].listOfNodes.remove(curNode);
             }
         }
 
-        setBucketsSummary(nextNumberOfBuckets);
+        bucketsQuantity = nextNumberOfBuckets;
         buckets = newBuckets;
     }
 
 
-    private int getBucketIndex(@Nullable String key, int bucketsSummary) {
-        return (key == null) ? 0 : Math.abs(key.hashCode()) % bucketsSummary;
-    }
-
-    private void incNotNullKeysSummary() {
-        notNullKeysSummary++;
-    }
-
-    private void decNotNullKeysSummary() {
-        notNullKeysSummary--;
+    private int getBucketIndex(String key, int bucketsSummary) {
+        return key == null ? 0 : Math.abs(key.hashCode()) % bucketsSummary;
     }
 
     private double calcLoadFactor() {
-        return notNullKeysSummary / (double) getBucketsSummary();
+        return notNullKeysQuantity / (double) getBucketsQuantity();
     }
 }
